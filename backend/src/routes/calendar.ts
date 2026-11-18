@@ -17,7 +17,8 @@ const recurrenceSchema = z.object({
 
 const eventSchema = z.object({
   title: z.string().min(1).max(200),
-  description: z.string().optional(),
+  // The UI sends null for an empty notes field, so accept null as well.
+  description: z.string().optional().nullable(),
   startAt: z.string().datetime(),
   endAt: z.string().datetime(),
   allDay: z.boolean().optional(),
