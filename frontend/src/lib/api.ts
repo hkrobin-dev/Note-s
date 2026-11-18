@@ -12,10 +12,16 @@ const API_URL =
     ? ""
     : process.env.NEXT_PUBLIC_API_URL || "http://localhost:4100");
 
+// A single stalled endpoint must never keep the whole UI in a loading state.
+// Vercel kills an invocation at 60s, so fail clearly before that.
+const REQUEST_TIMEOUT_MS = 15_000;
+
 async function request(path: string, opts: RequestInit = {}) {
   const headers: Record<string, string> = { "Content-Type": "application/json", ...(opts.headers as Record<string, string>) };
+  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  const signal = opts.signal ? AbortSignal.any([opts.signal, timeout]) : timeout;
 
-  const res = await fetch(`${API_URL}${path}`, { ...opts, headers, credentials: "include" });
+  const res = await fetch(`${API_URL}${path}`, { ...opts, headers, credentials: "include", signal });
   if (res.status === 401) {
     if (typeof window !== "undefined") {
       const p = window.location.pathname;

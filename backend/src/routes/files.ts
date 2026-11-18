@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from "../lib/async-router";
 import multer from "multer";
 import { body, validationResult } from "express-validator";
 import { prisma } from "../lib/prisma";

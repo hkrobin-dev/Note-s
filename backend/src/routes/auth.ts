@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from "../lib/async-router";
 import { body, validationResult } from "express-validator";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";

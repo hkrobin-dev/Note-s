@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from "../lib/async-router";
 import { prisma } from "../lib/prisma";
 
 const router = Router();

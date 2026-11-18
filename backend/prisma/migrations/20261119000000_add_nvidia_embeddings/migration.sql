@@ -6,10 +6,10 @@ ALTER TABLE "DocumentChunk" ADD COLUMN IF NOT EXISTS "embeddingNvidia" vector(20
 ALTER TABLE "DocumentChunk" ADD COLUMN IF NOT EXISTS "embeddingProvider" TEXT NOT NULL DEFAULT 'ollama';
 ALTER TABLE "DocumentChunk" ADD COLUMN IF NOT EXISTS "embeddingModel" TEXT NOT NULL DEFAULT 'nomic-embed-text';
 
--- Separate index: 768-dim and 2048-dim vectors must never share one HNSW index.
-CREATE INDEX IF NOT EXISTS "DocumentChunk_nvidiaEmbedding_idx"
-  ON "DocumentChunk" USING hnsw ("embeddingNvidia" vector_cosine_ops)
-  WHERE "embeddingNvidia" IS NOT NULL;
-
+-- No vector index on embeddingNvidia: pgvector's HNSW and IVFFlat indexes
+-- support at most 2000 dimensions, but NVIDIA Nemotron embeddings are 2048.
+-- Cosine search over this column is therefore a sequential scan, which is
+-- acceptable for a personal knowledge base. The 768-dim Ollama column keeps
+-- its HNSW index from the previous migration.
 CREATE INDEX IF NOT EXISTS "DocumentChunk_provider_idx"
   ON "DocumentChunk"("userId", "embeddingProvider", "embeddingModel");

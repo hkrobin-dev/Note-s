@@ -1,7 +1,11 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../src/generated/prisma/client";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) throw new Error("DATABASE_URL is required for seeding");
+
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 
 async function main() {
   const passwordHash = await bcrypt.hash("demo1234", 12);
@@ -10,6 +14,8 @@ async function main() {
     where: { email: "demo@mylifeos.com" },
     update: {},
     create: {
+      // The API falls back to this id in demo mode (AUTH_ENFORCE != "true").
+      id: "demo_user_001",
       email: "demo@mylifeos.com",
       username: "demo",
       passwordHash,

@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from "../lib/async-router";
 import { query, validationResult } from "express-validator";
 import { prisma } from "../lib/prisma";
 
