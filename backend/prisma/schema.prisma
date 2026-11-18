@@ -1,0 +1,792 @@
+// My Life OS — Prisma Schema (Backend)
+// Deploy DB separately (Neon / Supabase / Railway / self-hosted Postgres).
+// Models are ordered by dependency so referenced types exist first.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  generatedFileExtension = "ts"
+  // Extensionless imports so Next.js/Webpack can resolve the generated .ts
+  // files. Prisma defaults to `./file.js`, which points at a non-existent file.
+  importFileExtension = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  MOBILE_WALLET
+  OTHER
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+enum ReminderChannel {
+  APP
+  BROWSER
+  EMAIL
+}
+
+enum RecurrenceFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+  CUSTOM
+}
+
+enum LinkKind {
+  PROJECT
+  TASK
+  PAGE
+  EVENT
+  EXPENSE
+}
+
+enum NotificationType {
+  REMINDER
+  TASK
+  SYSTEM
+  EXPENSE
+}
+
+enum AuthProvider {
+  CREDENTIALS
+}
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  username      String?
+  passwordHash  String
+  avatarUrl     String?
+  theme         String    @default("light")
+  timezone      String    @default("Asia/Dhaka")
+  currency      String    @default("BDT")
+  emailVerified Boolean   @default(false)
+  provider      AuthProvider @default(CREDENTIALS)
+  providerId    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  tags          Tag[]
+  taskComments  TaskComment[]
+  tasks         Task[]
+  projects      Project[]
+  pages         Page[]
+  events        CalendarEvent[]
+  expenses      Expense[]
+  expenseCategories ExpenseCategory[]
+  recurringExpenses RecurringExpense[]
+  budgets       Budget[]
+  incomeRecords IncomeRecord[]
+  reminders     Reminder[]
+  notifications Notification[]
+  activityLogs  ActivityLog[]
+  settings      UserSetting?
+  storedFiles   StoredFile[]
+
+  @@index([email])
+  @@index([createdAt])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@index([sessionToken])
+}
+
+// ---------------------------------------------------------------------------
+// Tags & junctions (defined early — referenced by Task/Page/Expense)
+// ---------------------------------------------------------------------------
+
+model Tag {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  color     String?
+  userId    String
+  user      User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+
+  tasks      TaskTag[]
+  pageLinks  PageTag[]
+  expenses   ExpenseTag[]
+}
+
+model TaskTag {
+  taskId String
+  tagId  String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, tagId])
+  @@index([tagId])
+}
+
+model PageTag {
+  pageId String
+  tagId  String
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([pageId, tagId])
+  @@index([tagId])
+}
+
+model ExpenseTag {
+  expenseId String
+  tagId     String
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([expenseId, tagId])
+  @@index([tagId])
+}
+
+// ---------------------------------------------------------------------------
+// Project
+// ---------------------------------------------------------------------------
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(PLANNING)
+  priority    TaskPriority  @default(MEDIUM)
+  startDate   DateTime?
+  deadline    DateTime?
+  accentColor String?
+  icon        String?
+  archivedAt  DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  userId   String
+  user     User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tasks     Task[]
+  pages     Page[]
+  events    CalendarEvent[]
+  expenses  Expense[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([deadline])
+}
+
+// ---------------------------------------------------------------------------
+// Task
+// ---------------------------------------------------------------------------
+
+model Task {
+  id            String       @id @default(cuid())
+  title         String
+  description   String?
+  status        TaskStatus   @default(TODO)
+  priority      TaskPriority @default(MEDIUM)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  startDate     DateTime?
+  dueDate       DateTime?
+  completedAt   DateTime?
+  estimatedMins Int?
+  originalDueDate DateTime?
+  rescheduledFrom DateTime?
+
+  userId    String
+  user      User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  parentTaskId String?
+  parentTask  Task?    @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
+  subtasks    Task[]   @relation("TaskSubtasks")
+
+  comments   TaskComment[]
+  reminders  Reminder[]
+  taggedWith TaskTag[]
+  events     CalendarEvent[]
+  routines   Routine[]
+  timeEntries TimeEntry[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([dueDate])
+  @@index([projectId])
+  @@index([parentTaskId])
+}
+
+model TaskComment {
+  id        String      @id @default(cuid())
+  taskId    String
+  task      Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime    @default(now())
+
+  @@index([taskId])
+}
+
+// ---------------------------------------------------------------------------
+// Calendar
+// ---------------------------------------------------------------------------
+
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  startAt     DateTime
+  endAt       DateTime
+  allDay      Boolean  @default(false)
+  eventType   String   @default("GENERAL")
+  location    String?
+  notes       String?
+  status      String   @default("CONFIRMED")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId     String
+  user       User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  taskId    String?
+  task      Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  reminders Reminder[]
+  recurrence RecurrenceRule?
+
+  @@index([userId])
+  @@index([startAt])
+  @@index([endAt])
+  @@index([projectId])
+}
+
+model RecurrenceRule {
+  id        String               @id @default(cuid())
+  frequency RecurrenceFrequency
+  interval  Int                  @default(1)
+  weekdays  Int[]  @default([])
+  dayOfMonth Int?
+  until     DateTime?
+  maxOccurrences Int?
+
+  eventId   String               @unique
+  event     CalendarEvent        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Reminders + Notifications
+// ---------------------------------------------------------------------------
+
+model Reminder {
+  id          String          @id @default(cuid())
+  scheduledAt DateTime
+  message     String
+  status      ReminderStatus  @default(PENDING)
+  channel     ReminderChannel @default(APP)
+  sentAttempts  Int           @default(0)
+  sentAt        DateTime?
+  failReason    String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  completedAt   DateTime?
+
+  userId    String
+  user      User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId    String?
+  task      Task?           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  eventId   String?
+  event     CalendarEvent?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status, scheduledAt])
+  @@index([taskId])
+  @@index([eventId])
+}
+
+model Notification {
+  id        String         @id @default(cuid())
+  type      NotificationType
+  title     String
+  body      String?
+  read      Boolean        @default(false)
+  link      String?
+  createdAt DateTime       @default(now())
+  readAt    DateTime?
+
+  userId    String
+  user      User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Finance
+// ---------------------------------------------------------------------------
+
+model ExpenseCategory {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  color     String?
+  icon      String?
+  order     Int       @default(0)
+  archived  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  userId    String
+  user      User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  expenses Expense[]
+  budgets  Budget[]
+  recurringExpenses RecurringExpense[]
+
+  @@index([userId])
+}
+
+model Expense {
+  id            String        @id @default(cuid())
+  amount        Decimal       @db.Decimal(14, 2)
+  expenseDate   DateTime
+  description   String?
+  paymentMethod PaymentMethod @default(CASH)
+  vendor        String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  userId    String
+  user      User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  taggedWith ExpenseTag[]
+
+  @@index([userId])
+  @@index([expenseDate])
+  @@index([categoryId])
+  @@index([projectId])
+}
+
+model RecurringExpense {
+  id             String               @id @default(cuid())
+  name           String
+  amount         Decimal              @db.Decimal(14, 2)
+  frequency      RecurrenceFrequency
+  categoryId     String
+  category       ExpenseCategory      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  startDate      DateTime
+  endDate        DateTime?
+  nextExpectedAt DateTime
+  active         Boolean              @default(true)
+  pausedAt       DateTime?
+  autoCreate     Boolean              @default(false)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  userId    String
+  user      User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([nextExpectedAt])
+  @@index([active])
+}
+
+model Budget {
+  id        String    @id @default(cuid())
+  month     DateTime
+  amount    Decimal   @db.Decimal(14, 2)
+  categoryId String?  // null = whole-month budget
+  category  ExpenseCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  userId    String
+  user      User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month, categoryId])
+  @@index([userId])
+  @@index([month])
+}
+
+model IncomeRecord {
+  id        String   @id @default(cuid())
+  amount    Decimal  @db.Decimal(14, 2)
+  incomeDate DateTime
+  source    String?
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    String
+  user      User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([incomeDate])
+}
+
+// ---------------------------------------------------------------------------
+// Time tracking & routines
+// ---------------------------------------------------------------------------
+
+model Routine {
+  id                 String   @id @default(cuid())
+  title              String
+  timeOfDay          String   // "HH:mm" in user timezone
+  daysOfWeek         Int[]    @default([]) // 1=Mon .. 7=Sun
+  taskId             String?
+  task               Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  reminderOffsetMins Int      @default(0)
+  active             Boolean  @default(true)
+  userId             String
+  timeEntries        TimeEntry[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([userId])
+  @@index([active])
+}
+
+model Habit {
+  id        String   @id @default(cuid())
+  title     String
+  active    Boolean  @default(true)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  logs      HabitLog[]
+
+  @@index([userId])
+  @@index([active])
+}
+
+model HabitLog {
+  id        String   @id @default(cuid())
+  habitId   String
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date      DateTime
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@unique([habitId, date])
+  @@index([userId])
+  @@index([date])
+}
+
+model Meeting {
+  id        String   @id @default(cuid())
+  title     String
+  startAt   DateTime
+  endAt     DateTime?
+  location  String?
+  link      String?
+  attendees String[] @default([])
+  agenda    String?
+  notes     String?
+  status    String   @default("SCHEDULED")
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  actionItems MeetingActionItem[]
+
+  @@index([userId])
+  @@index([startAt])
+}
+
+model MeetingActionItem {
+  id        String    @id @default(cuid())
+  meetingId String
+  meeting   Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  text      String
+  assignee  String?
+  dueDate   DateTime?
+  done      Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([meetingId])
+  @@index([done])
+}
+
+model Snippet {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  language    String   @default("text")
+  code        String
+  tags        String[] @default([])
+  favorite    Boolean  @default(false)
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([language])
+}
+
+model Bookmark {
+  id          String   @id @default(cuid())
+  title       String
+  url         String
+  description String?
+  category    String   @default("GENERAL")
+  tags        String[] @default([])
+  favorite    Boolean  @default(false)
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([category])
+}
+
+model Goal {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  category     String   @default("PERSONAL")
+  targetValue  Float    @default(100)
+  currentValue Float    @default(0)
+  unit         String?
+  dueDate      DateTime?
+  status       String   @default("ACTIVE")
+  userId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model TimeEntry {
+  id        String   @id @default(cuid())
+  taskId    String?
+  task      Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  routineId String?
+  routine   Routine? @relation(fields: [routineId], references: [id], onDelete: SetNull)
+  startAt   DateTime
+  endAt     DateTime?
+  durationMins Int?
+  note      String?
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([taskId])
+  @@index([routineId])
+  @@index([startAt])
+}
+
+// ---------------------------------------------------------------------------
+// Knowledge (Notion-style pages)
+// ---------------------------------------------------------------------------
+
+model Page {
+  id        String   @id @default(cuid())
+  title     String
+  content   Json?
+  icon      String?
+  coverImage String?
+  favorite  Boolean  @default(false)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  archivedAt DateTime?
+
+  userId    String
+  user      User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  parentId  String?
+  parent    Page?    @relation("PageChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Page[]   @relation("PageChildren")
+
+  taggedWith PageTag[]
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([parentId])
+  @@index([updatedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Files
+// ---------------------------------------------------------------------------
+
+model StoredFile {
+  id             String   @id @default(cuid())
+  filename       String
+  safeFilename   String
+  // Local/dev path. On serverless (Vercel) the bytes live in `data` instead,
+  // because the filesystem is read-only and ephemeral.
+  storagePath    String
+  mimeType       String
+  byteSize       Int
+  checksum       String?
+  data           Bytes?
+  createdAt      DateTime @default(now())
+  deletedAt      DateTime?
+
+  userId    String
+  user      User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  links FileLink[]
+
+  @@index([userId])
+  @@index([filename])
+  @@index([checksum])
+}
+
+model FileLink {
+  id        String   @id @default(cuid())
+  fileId    String
+  file      StoredFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  linkedId  String
+  linkedKind LinkKind
+
+  createdAt DateTime @default(now())
+
+  @@unique([fileId, linkedKind, linkedId])
+  @@index([linkedKind, linkedId])
+}
+
+// ---------------------------------------------------------------------------
+// System
+// ---------------------------------------------------------------------------
+
+model AppSetting {
+  key        String   @id
+  value      Json
+  updatedAt  DateTime @updatedAt
+}
+
+model UserSetting {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  theme     String   @default("light")
+  timezone  String   @default("Asia/Dhaka")
+  currency  String   @default("BDT")
+  notificationsEnabled Boolean @default(true)
+  emailNotifications  Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entityType String
+  entityId   String
+  action     String
+  detail     Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Private RAG index (local embeddings in pgvector). No relation to User so the
+// demo user can index data too; access is enforced by userId in queries.
+// ---------------------------------------------------------------------------
+
+model DocumentChunk {
+  id          String   @id @default(cuid())
+  userId      String
+  sourceType  String
+  sourceId    String
+  title       String
+  href        String
+  chunkIndex  Int
+  text        String
+  contentHash String
+  // Legacy Ollama/nomic-embed-text vectors (768 dims). Kept untouched.
+  embedding   Unsupported("vector(768)")?
+  // NVIDIA Nemotron Embed vectors (2048 dims). Separate column + index so
+  // embeddings from different models are never mixed in one vector index.
+  embeddingNvidia Unsupported("vector(2048)")?
+  embeddingProvider String @default("ollama")
+  embeddingModel    String @default("nomic-embed-text")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, sourceType, sourceId])
+  @@index([userId, embeddingProvider, embeddingModel])
+}
+

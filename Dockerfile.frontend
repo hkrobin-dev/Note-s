@@ -1,0 +1,25 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Copy Prisma schema and generate client
+COPY prisma ./prisma
+RUN npx prisma generate
+
+# Copy source code
+COPY . .
+
+# Build for production
+RUN npm run build
+
+ENV PORT=3100
+EXPOSE 3100
+
+ENV NODE_ENV=production
+ENV DATABASE_URL=""
+
+CMD ["npm", "start"]

@@ -1,0 +1,590 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   My Life OS — "Calm Focus" design system
+   Original design language inspired by 2026 productivity-dashboard trends:
+   neutral layered surfaces, one accent color, status color only for state,
+   grouped navigation, bento grids, and generous breathing room.
+--------------------------------------------------------------------------- */
+
+@theme {
+  --font-sans: var(--font-inter), "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Light theme tokens (default) — warm cream canvas */
+  --color-canvas: #faf8f4;
+  --color-canvas-2: #f1ece4;
+  --color-surface: #ffffff;
+  --color-surface-2: #fbf9f6;
+  --color-surface-3: #f2eee8;
+  --color-glass: var(--color-surface);
+  --color-glass-hover: var(--color-surface-2);
+  --color-glass-border: var(--color-line);
+  --color-line: #e9e2d8;
+  --color-line-strong: #dcd3c5;
+  --color-ink: #1a1815;
+  --color-ink-2: #514c44;
+  --color-ink-3: #8d8579;
+  --color-accent: #4f46e5;
+  --color-accent-2: #4338ca;
+  --color-accent-soft: #eef0ff;
+  --color-accent-glass: rgba(79, 70, 229, 0.09);
+  --color-accent-ink: #ffffff;
+  --color-positive: #16a34a;
+  --color-warning: #d97706;
+  --color-error: #dc2626;
+  --color-shadow: rgba(18, 22, 35, 0.06);
+  --color-shadow-glass: rgba(18, 22, 35, 0.04);
+}
+
+[data-theme="dark"] {
+  /* Deep navy canvas */
+  --color-canvas: #0a1220;
+  --color-canvas-2: #0d1728;
+  --color-surface: #121c2e;
+  --color-surface-2: #18243a;
+  --color-surface-3: #223049;
+  --color-glass: var(--color-surface);
+  --color-glass-hover: var(--color-surface-2);
+  --color-glass-border: var(--color-line-strong);
+  --color-line: rgba(190, 210, 255, 0.1);
+  --color-line-strong: rgba(190, 210, 255, 0.18);
+  --color-ink: #f3f6ff;
+  --color-ink-2: #a9b6d0;
+  --color-ink-3: #74819c;
+  --color-accent: #9b8cff;
+  --color-accent-2: #b3a6ff;
+  --color-accent-soft: rgba(155, 140, 255, 0.13);
+  --color-accent-glass: rgba(155, 140, 255, 0.12);
+  --color-accent-ink: #17132b;
+  --color-positive: #4ade80;
+  --color-warning: #fbbf24;
+  --color-error: #fb7185;
+  --color-shadow: rgba(0, 0, 0, 0.45);
+  --color-shadow-glass: rgba(0, 0, 0, 0.3);
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  @apply bg-canvas text-ink antialiased;
+  font-family: var(--font-sans);
+  background-color: var(--color-canvas);
+  min-height: 100vh;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Numeric alignment for dashboards */
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------------------
+   Scrollbars — prevent stray horizontal bars, keep vertical scrolling usable
+--------------------------------------------------------------------------- */
+html, body { overflow-x: clip; }
+
+* { scrollbar-width: thin; scrollbar-color: var(--color-line-strong) transparent; }
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--color-line-strong);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--color-ink-3); }
+
+/* Hide the scrollbar while keeping the element scrollable */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ---------------------------------------------------------------------------
+   Core surfaces — flat, layered, hairline borders (backward-compatible names)
+--------------------------------------------------------------------------- */
+.glass,
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px var(--color-shadow-glass), 0 10px 30px -18px var(--color-shadow);
+}
+
+.glass-elevated {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line-strong);
+  border-radius: 1rem;
+  box-shadow: 0 24px 60px -20px var(--color-shadow), 0 2px 8px var(--color-shadow-glass);
+}
+
+.glass-interactive {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+  cursor: pointer;
+}
+
+.glass-interactive:hover {
+  background: var(--color-surface-2);
+  border-color: var(--color-line);
+}
+
+.glass-inset {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-line);
+  border-radius: 0.75rem;
+}
+
+/* White/beige glassy modal — always light regardless of theme */
+.glass-modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+  box-shadow: 0 24px 60px -20px var(--color-shadow);
+}
+[data-theme="dark"] .glass-modal { background: var(--color-surface); }
+
+/* ---------------------------------------------------------------------------
+   Buttons, inputs, pills
+--------------------------------------------------------------------------- */
+.accent-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface-2);
+  color: var(--color-ink-2);
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200;
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  border: 1px solid var(--color-accent);
+  box-shadow: 0 6px 16px -6px var(--color-accent);
+}
+.btn-primary:hover {
+  background: var(--color-accent-2);
+  border-color: var(--color-accent-2);
+  transform: translateY(-1px);
+}
+.btn-primary:active { transform: translateY(0); }
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200;
+  background: var(--color-surface);
+  color: var(--color-ink-2);
+  border: 1px solid var(--color-line);
+}
+.btn-ghost:hover { background: var(--color-surface-2); color: var(--color-ink); }
+
+.status-pill {
+  @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-semibold border;
+  border-color: var(--color-line);
+  background: var(--color-surface-2);
+  color: var(--color-ink-3);
+}
+.status-positive { @apply border-positive text-positive bg-positive/10; }
+.status-warning { @apply border-warning text-warning bg-warning/10; }
+.status-error { @apply border-error text-error bg-error/10; }
+
+.input-glass {
+  @apply w-full rounded-xl px-4 py-2.5 text-sm transition-all duration-200;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  color: var(--color-ink);
+}
+.input-glass::placeholder { color: var(--color-ink-3); opacity: 0.8; }
+.input-glass:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-glass);
+}
+
+.page-wrap {
+  width: min(1400px, 100% - 32px);
+  margin: 0 auto;
+}
+
+.section-title { @apply mb-4 flex items-center gap-2; }
+.section-title h2 {
+  @apply text-sm font-semibold text-ink-2;
+  letter-spacing: -0.01em;
+}
+
+/* ---------------------------------------------------------------------------
+   Dashboard primitives — the new visual language
+--------------------------------------------------------------------------- */
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  box-shadow: 0 1px 2px var(--color-shadow-glass), 0 18px 50px -30px var(--color-shadow);
+}
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(520px 240px at 88% -20%, var(--color-accent-glass), transparent 70%),
+    radial-gradient(420px 220px at 8% 120%, var(--color-accent-glass), transparent 72%);
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: radial-gradient(var(--color-line-strong) 0.7px, transparent 0.7px);
+  background-size: 20px 20px;
+  mask-image: linear-gradient(to left, black, transparent 60%);
+}
+
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.search-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 13rem;
+  padding: 0.5rem 0.6rem 0.5rem 0.8rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface-2);
+  color: var(--color-ink-3);
+  font-size: 0.8125rem;
+  transition: border-color 0.18s ease, color 0.18s ease;
+}
+.search-trigger:hover { border-color: var(--color-accent); color: var(--color-ink-2); }
+.search-trigger kbd {
+  margin-left: auto;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.35rem;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  font-size: 0.625rem;
+  font-family: var(--font-mono);
+  color: var(--color-ink-3);
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.35rem;
+  border-bottom: 1px solid var(--color-line);
+}
+.panel-body { padding: 1.35rem; }
+.panel-head-icon {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.65rem;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+.link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+.link-arrow:hover { text-decoration: underline; }
+
+.kpi { position: relative; padding: 1.35rem; overflow: hidden; }
+.kpi-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+.kpi-icon {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.65rem;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+.kpi-value {
+  margin-top: 0.9rem;
+  font-size: 1.9rem;
+  line-height: 1.1;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+}
+.kpi-sub { margin-top: 0.4rem; font-size: 0.75rem; color: var(--color-ink-3); }
+.kpi-rule {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-accent), transparent 70%);
+  opacity: 0.55;
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  background: var(--color-surface-2);
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+}
+.list-row:hover { border-color: var(--color-line-strong); background: var(--color-surface-3); }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-ink-3);
+}
+.chip--accent { border-color: var(--color-accent); color: var(--color-accent); background: var(--color-accent-soft); }
+.chip--positive { border-color: var(--color-positive); color: var(--color-positive); background: color-mix(in srgb, var(--color-positive) 10%, transparent); }
+.chip--warning { border-color: var(--color-warning); color: var(--color-warning); background: color-mix(in srgb, var(--color-warning) 10%, transparent); }
+
+.progress-track {
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: var(--color-surface-3);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--color-accent);
+  transition: width 0.4s ease;
+}
+
+.ring {
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--color-accent) calc(var(--pct) * 1%), var(--color-surface-3) 0);
+}
+.ring-inner {
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--color-surface);
+  font-size: 0.9rem;
+  font-weight: 650;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline { position: relative; padding-left: 1.4rem; }
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 0.3rem; top: 0.45rem; bottom: 0.45rem;
+  width: 1px;
+  background: var(--color-line-strong);
+}
+.timeline-item { position: relative; padding: 0.45rem 0; }
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -1.25rem;
+  top: 0.85rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 2px solid var(--color-accent);
+}
+
+.empty-state {
+  padding: 1.75rem 1rem;
+  text-align: center;
+  border: 1px dashed var(--color-line-strong);
+  border-radius: 0.85rem;
+  color: var(--color-ink-3);
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-surface-2);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--color-surface-3), transparent);
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+
+/* Toast alerts */
+.toast-enter { animation: toast-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.toast-progress {
+  transform-origin: left;
+  animation-name: toast-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast-enter, .toast-progress { animation: none; }
+}
+
+.nav-group-label {
+  padding: 0.9rem 0.75rem 0.35rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+  opacity: 0.75;
+}
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.7rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-ink-3);
+  transition: background-color 0.16s ease, color 0.16s ease;
+}
+.nav-item:hover { background: var(--color-surface-2); color: var(--color-ink); }
+.nav-item[data-active="true"] {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-weight: 650;
+}
+.nav-item[data-active="true"]::before {
+  content: "";
+  position: absolute;
+  left: -0.25rem;
+  top: 28%;
+  bottom: 28%;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--color-accent);
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.7rem;
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  font-weight: 750;
+  font-size: 0.95rem;
+  letter-spacing: -0.04em;
+  box-shadow: 0 6px 16px -6px var(--color-accent);
+}
+
+/* ---------------------------------------------------------------------------
+   Legacy compatibility — older pages still hardcode dark/white colors for
+   modals, dropdowns, options and inner surfaces. These mappings make them
+   read correctly in both themes without editing every page. Backdrops
+   (bg-black/50, /55, /60) are intentionally left dark. New work should use the
+   semantic classes above.
+--------------------------------------------------------------------------- */
+
+/* Dark-navy popup / modal panels → themed surface */
+[class*="bg-[#0b0f1a]"] { background-color: var(--color-surface); }
+
+/* Dark translucent inner surfaces → themed surfaces */
+[class*="bg-black/10"],
+[class*="bg-white/[0.03]"],
+[class*="bg-white/5"] { background-color: var(--color-surface-2); }
+
+[class*="bg-black/20"],
+[class*="bg-black/30"],
+[class*="bg-black/40"],
+[class*="bg-white/10"] { background-color: var(--color-surface-3); }
+
+/* Hairline borders */
+[class*="border-white/10"] { border-color: var(--color-line); }
+[class*="border-white/15"] { border-color: var(--color-line-strong); }
+
+/* Accent controls that hardcoded white text → theme-aware accent ink.
+   The error badge keeps white text on red in both themes. */
+[class*="text-white"]:not(.bg-error) { color: var(--color-accent-ink); }
+
+/* Native select popups follow the active theme instead of staying dark. */
+option {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+}
+option:checked {
+  background-color: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+.glass .glass-interactive:hover { background: var(--color-surface-2); }
+
+/* ---------------------------------------------------------------------------
+   Workspace rich-text editor
+--------------------------------------------------------------------------- */
+.workspace-editor:focus { outline: none; }
+.workspace-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-ink-3);
+  opacity: 0.6;
+  pointer-events: none;
+}
+.workspace-editor h1 { @apply text-2xl font-bold text-ink mt-4 mb-2; }
+.workspace-editor h2 { @apply text-xl font-semibold text-ink mt-4 mb-2; }
+.workspace-editor p { margin: 0.5rem 0; line-height: 1.7; }
+.workspace-editor ul { @apply list-disc pl-6 my-2 space-y-1; }
+.workspace-editor ol { @apply list-decimal pl-6 my-2 space-y-1; }
+.workspace-editor blockquote { @apply border-l-2 border-accent/60 pl-4 my-3 text-ink-2 italic; }
+.workspace-editor pre {
+  @apply rounded-xl bg-black/40 border border-white/10 p-3 my-3 text-xs overflow-x-auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.workspace-editor a { @apply text-accent underline; }
+.workspace-editor code {
+  @apply rounded bg-white/10 px-1 py-0.5 text-[0.85em];
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}

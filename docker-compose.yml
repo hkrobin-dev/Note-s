@@ -1,0 +1,88 @@
+version: "3.9"
+
+services:
+  # --- DATABASE (deploy separately in production: Neon / Supabase / Railway / self-hosted Postgres) ---
+  db:
+    image: pgvector/pgvector:pg16 # pgvector extension required for the private AI index
+    container_name: mylifeos-db
+    environment:
+      POSTGRES_USER: mylifeos
+      POSTGRES_PASSWORD: mylifeos_dev
+      POSTGRES_DB: mylifeos
+    ports:
+      - "5432:5432"
+    volumes:
+      - mylifeos-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mylifeos -d mylifeos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- BACKEND (deploy separately — Express + Prisma API) ---
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mylifeos-backend
+    environment:
+      DATABASE_URL: "postgresql://mylifeos:mylifeos_dev@db:5432/mylifeos?schema=public"
+      PORT: 4100
+      NODE_ENV: development
+      API_BASE_URL: http://localhost:4100
+      FRONTEND_URL: http://localhost:3100
+      JWT_SECRET: change-me-in-production
+      JWT_ACCESS_TTL: 15m
+      JWT_REFRESH_TTL: 7d
+      UPLOAD_DIR: ./uploads
+      MAX_FILE_SIZE_MB: 10
+      APP_TIMEZONE: Asia/Dhaka
+      APP_CURRENCY: BDT
+      # Ask your life — provider selected on the backend only (see docs/AI_SETUP.md)
+      AI_PROVIDER: ${AI_PROVIDER:-ollama}
+      AI_RERANK_ENABLED: ${AI_RERANK_ENABLED:-true}
+      # Local AI (Ollama runs on the host — see docs/AI_SETUP.md)
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_EMBED_MODEL: nomic-embed-text
+      OLLAMA_CHAT_MODEL: qwen2.5:3b
+      # NVIDIA NIM (backend only). Put the real key in a root .env file; never commit it.
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
+      NVIDIA_BASE_URL: ${NVIDIA_BASE_URL:-https://integrate.api.nvidia.com/v1}
+      NVIDIA_CHAT_MODEL: ${NVIDIA_CHAT_MODEL:-nvidia/nemotron-3.5-bolt-e4b}
+      NVIDIA_EMBED_MODEL: ${NVIDIA_EMBED_MODEL:-nvidia/nemotron-3.5-embed-1b}
+      NVIDIA_RERANK_MODEL: ${NVIDIA_RERANK_MODEL:-nvidia/nemotron-3.5-rerank-8b}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "4100:4100"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npx tsx watch src/index.ts"
+
+  # --- FRONTEND (Next.js app — root of this repo) ---
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: mylifeos-frontend
+    environment:
+      DATABASE_URL: "postgresql://mylifeos:mylifeos_dev@db:5432/mylifeos?schema=public"
+      NEXT_PUBLIC_API_URL: http://backend:4100
+      NEXT_PUBLIC_APP_URL: http://localhost:3100
+      NEXT_PUBLIC_APP_TIMEZONE: Asia/Dhaka
+      NEXT_PUBLIC_APP_CURRENCY: BDT
+    ports:
+      - "3100:3100"
+    depends_on:
+      - backend
+    volumes:
+      - .:/app
+      - ./node_modules:/app/node_modules
+    command: sh -c "npx prisma generate && npm run dev"
+
+volumes:
+  mylifeos-db-data:
