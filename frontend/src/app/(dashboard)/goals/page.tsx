@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { toast } from "@/components/toast/toaster";
+import { confirmDialog } from "@/components/dialog/confirm";
 import { Plus, Target, Trash2, CheckCircle2, Minus, CalendarDays, Pencil, X, TrendingUp } from "lucide-react";
 
 type Goal = {
@@ -88,7 +90,7 @@ export default function GoalsPage() {
       setDueDate("");
       load();
     } catch (err: any) {
-      alert(err?.message || "Failed to create goal");
+      toast.error(err?.message || "Failed to create goal");
     }
   }
 
@@ -103,7 +105,7 @@ export default function GoalsPage() {
       });
       load();
     } catch (err: any) {
-      alert(err?.message || "Failed to update goal");
+      toast.error(err?.message || "Failed to update goal");
     } finally {
       setBusyGoal(null);
     }
@@ -124,7 +126,7 @@ export default function GoalsPage() {
       setLogDraft((d) => ({ ...d, [goal.id]: "" }));
       load();
     } catch (err: any) {
-      alert(err?.message || "Failed to update goal");
+      toast.error(err?.message || "Failed to update goal");
     } finally {
       setBusyGoal(null);
     }
@@ -138,17 +140,17 @@ export default function GoalsPage() {
       });
       load();
     } catch (err: any) {
-      alert(err?.message || "Failed to update goal");
+      toast.error(err?.message || "Failed to update goal");
     }
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this goal?")) return;
+    if (!(await confirmDialog("Delete this goal?"))) return;
     try {
       await api.goals.remove(id);
       load();
     } catch (err: any) {
-      alert(err?.message || "Failed to delete goal");
+      toast.error(err?.message || "Failed to delete goal");
     }
   }
 
@@ -185,7 +187,7 @@ export default function GoalsPage() {
       setEditing(null);
       load();
     } catch (err: any) {
-      alert(err?.message || "Failed to update goal");
+      toast.error(err?.message || "Failed to update goal");
     } finally {
       setSavingEdit(false);
     }

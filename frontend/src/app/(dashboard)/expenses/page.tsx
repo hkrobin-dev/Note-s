@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { confirmDialog } from "@/components/dialog/confirm";
 import { GlassPanel, StatTile } from "@/components/glass/GlassPanel";
 import { Plus, CreditCard, Edit, Trash2, X, Check, Repeat, Play, Pause } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -184,7 +185,7 @@ export default function ExpensesPage() {
   }
 
   async function remove(e: Expense) {
-    if (!confirm("Delete this expense?")) return;
+    if (!(await confirmDialog("Delete this expense?"))) return;
     try {
       await api.expenses.remove(e.id);
       setExpenses((list) => list.filter((x) => x.id !== e.id));
@@ -270,7 +271,7 @@ export default function ExpensesPage() {
   }
 
   async function removeRec(r: Recurring) {
-    if (!confirm(`Delete recurring expense "${r.name}"?`)) return;
+    if (!(await confirmDialog(`Delete recurring expense "${r.name}"?`))) return;
     try {
       await api.expenses.recurring.remove(r.id);
       setRecurring((list) => list.filter((x) => x.id !== r.id));

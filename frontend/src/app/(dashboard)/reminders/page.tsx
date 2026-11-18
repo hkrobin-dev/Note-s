@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { toast } from "@/components/toast/toaster";
+import { confirmDialog } from "@/components/dialog/confirm";
 import { Bell, Plus, Trash2, Clock, CheckCircle2, AlarmClock, X } from "lucide-react";
 
 type Reminder = {
@@ -103,7 +105,7 @@ export default function RemindersPage() {
       setForm({ message: "", scheduledAt: inMinutes(30), channel: "APP" });
       await load();
     } catch (err: any) {
-      alert(err?.message || "Failed to create reminder");
+      toast.error(err?.message || "Failed to create reminder");
     } finally {
       setSaving(false);
     }
@@ -114,17 +116,17 @@ export default function RemindersPage() {
       await api.reminders.update(r.id, body);
       await load();
     } catch (err: any) {
-      alert(err?.message || "Failed to update reminder");
+      toast.error(err?.message || "Failed to update reminder");
     }
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this reminder?")) return;
+    if (!(await confirmDialog("Delete this reminder?"))) return;
     try {
       await api.reminders.remove(id);
       await load();
     } catch (err: any) {
-      alert(err?.message || "Failed to delete reminder");
+      toast.error(err?.message || "Failed to delete reminder");
     }
   }
 

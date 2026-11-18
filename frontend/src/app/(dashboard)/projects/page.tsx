@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { confirmDialog } from "@/components/dialog/confirm";
 import { useToast } from "@/components/toast/toaster";
 import { cn } from "@/lib/utils";
 import {
@@ -144,7 +145,7 @@ export default function ProjectsPage() {
   }
 
   async function remove(p: Project) {
-    if (!confirm(`Delete "${p.name}"? Tasks will be kept but unlinked.`)) return;
+    if (!(await confirmDialog(`Delete "${p.name}"? Tasks will be kept but unlinked.`))) return;
     try {
       await api.projects.remove(p.id);
       await load();

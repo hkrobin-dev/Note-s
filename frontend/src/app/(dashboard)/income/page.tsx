@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { confirmDialog } from "@/components/dialog/confirm";
 import { useToast } from "@/components/toast/toaster";
 import { Plus, Trash2, TrendingUp, Wallet, Pencil, X } from "lucide-react";
 import { format, startOfMonth } from "date-fns";
@@ -130,7 +131,7 @@ export default function IncomePage() {
   }
 
   async function remove(it: Income) {
-    if (!confirm(`Delete "${it.source}" (৳${Number(it.amount).toLocaleString()})?`)) return;
+    if (!(await confirmDialog(`Delete "${it.source}" (৳${Number(it.amount).toLocaleString()})?`))) return;
     try {
       await api.income.remove(it.id);
       setItems((list) => list.filter((x) => x.id !== it.id));

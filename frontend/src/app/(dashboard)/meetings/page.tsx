@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { toast } from "@/components/toast/toaster";
+import { confirmDialog } from "@/components/dialog/confirm";
 import { CalendarClock, MapPin, Link2, Users, Plus, Trash2, CheckCircle2, ChevronDown, X, Pencil, Check, ListChecks } from "lucide-react";
 
 type ActionItem = {
@@ -105,7 +107,7 @@ export default function MeetingsPage() {
       setForm({ title: "", startAt: defaultStart, durationMins: "30", location: "", link: "", attendees: "", agenda: "" });
       load();
     } catch (err: any) {
-      alert(err?.message || "Failed to save meeting");
+      toast.error(err?.message || "Failed to save meeting");
     } finally {
       setSaving(false);
     }
@@ -139,17 +141,17 @@ export default function MeetingsPage() {
       await api.meetings.update(m.id, body);
       load();
     } catch (err: any) {
-      alert(err?.message || "Failed to update meeting");
+      toast.error(err?.message || "Failed to update meeting");
     }
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this meeting?")) return;
+    if (!(await confirmDialog("Delete this meeting?"))) return;
     try {
       await api.meetings.remove(id);
       load();
     } catch (err: any) {
-      alert(err?.message || "Failed to delete meeting");
+      toast.error(err?.message || "Failed to delete meeting");
     }
   }
 
@@ -185,7 +187,7 @@ export default function MeetingsPage() {
       );
       setActionDraft((s) => ({ ...s, [m.id]: { text: "", assignee: "", dueDate: "" } }));
     } catch (err: any) {
-      alert(err?.message || "Failed to add action item");
+      toast.error(err?.message || "Failed to add action item");
     } finally {
       setActionBusy(null);
     }
@@ -198,7 +200,7 @@ export default function MeetingsPage() {
       setAction(m, d.actionItem as ActionItem);
     } catch (err: any) {
       setAction(m, item);
-      alert(err?.message || "Failed to update action item");
+      toast.error(err?.message || "Failed to update action item");
     }
   }
 
@@ -211,7 +213,7 @@ export default function MeetingsPage() {
       await api.meetings.actionItems.remove(m.id, item.id);
     } catch (err: any) {
       setMeetings((list) => list.map((x) => (x.id === m.id ? { ...x, actionItems: previous } : x)));
-      alert(err?.message || "Failed to delete action item");
+      toast.error(err?.message || "Failed to delete action item");
     }
   }
 

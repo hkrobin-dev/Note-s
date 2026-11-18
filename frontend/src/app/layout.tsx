@@ -6,6 +6,7 @@ import { ReminderNotifier } from "@/components/notifications/ReminderNotifier";
 import { MobileNav } from "@/components/layout/Sidebar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { Toaster } from "@/components/toast/toaster";
+import { ConfirmDialog } from "@/components/dialog/confirm";
 import { PinLockGate } from "@/components/auth/PinLockGate";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <CommandPalette />
               <MobileNav />
               <Toaster />
+              <ConfirmDialog />
               <ServiceWorkerRegister />
             </div>
           </PinLockGate>

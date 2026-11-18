@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { confirmDialog } from "@/components/dialog/confirm";
 import { GlassPanel, StatTile } from "@/components/glass/GlassPanel";
 import { Plus, Edit, Trash2, Clock, Play, Pause, Activity } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -250,7 +251,7 @@ export default function TimeLogPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this time entry?")) return;
+    if (!(await confirmDialog("Delete this time entry?"))) return;
     try {
       await api.timeEntries.remove(id);
       setEntries((list) => list.filter((e) => e.id !== id));

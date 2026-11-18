@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { toast } from "@/components/toast/toaster";
+import { confirmDialog } from "@/components/dialog/confirm";
 import {
   ChevronRight,
   FileText,
@@ -307,14 +309,14 @@ export default function WorkspacePage() {
       if (parentId) setExpanded((e) => ({ ...e, [parentId]: true }));
       await load(id);
     } catch (err: any) {
-      alert(err?.message || "Failed to create page");
+      toast.error(err?.message || "Failed to create page");
     }
   }
 
   async function remove() {
     const id = selectedIdRef.current;
     if (!id) return;
-    if (!confirm("Archive this page? Any subpages will move up one level.")) return;
+    if (!(await confirmDialog("Archive this page? Any subpages will move up one level."))) return;
     try {
       await api.pages.remove(id);
       clearTimer();
@@ -322,7 +324,7 @@ export default function WorkspacePage() {
       selectedIdRef.current = null;
       await load();
     } catch (err: any) {
-      alert(err?.message || "Failed to archive page");
+      toast.error(err?.message || "Failed to archive page");
     }
   }
 
@@ -337,7 +339,7 @@ export default function WorkspacePage() {
     } catch (err: any) {
       setFavorite(!next);
       setPages((list) => list.map((p) => (p.id === id ? { ...p, favorite: !next } : p)));
-      alert(err?.message || "Failed to update favorite");
+      toast.error(err?.message || "Failed to update favorite");
     }
   }
 
@@ -351,7 +353,7 @@ export default function WorkspacePage() {
       if (parentId) setExpanded((e) => ({ ...e, [parentId]: true }));
       setExpanded((e) => ({ ...e, [id]: true }));
     } catch (err: any) {
-      alert(err?.message || "Failed to move page");
+      toast.error(err?.message || "Failed to move page");
     }
   }
 

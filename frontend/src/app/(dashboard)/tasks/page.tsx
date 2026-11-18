@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { confirmDialog } from "@/components/dialog/confirm";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/toast/toaster";
 import {
@@ -234,7 +235,7 @@ export default function TasksPage() {
   }
 
   async function remove(t: Task) {
-    if (!confirm(t.subtasks?.length ? `Delete "${t.title}" and its ${t.subtasks.length} subtask(s)?` : `Delete "${t.title}"?`)) return;
+    if (!(await confirmDialog(t.subtasks?.length ? `Delete "${t.title}" and its ${t.subtasks.length} subtask(s)?` : `Delete "${t.title}"?`))) return;
     try {
       await api.tasks.remove(t.id);
       await load();

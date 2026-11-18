@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { confirmDialog } from "@/components/dialog/confirm";
 import { useToast } from "@/components/toast/toaster";
 import { cn } from "@/lib/utils";
 import { Plus, FileText, Star, Trash2, Search, ArrowUpRight } from "lucide-react";
@@ -102,7 +103,7 @@ export default function NotesPage() {
   }
 
   async function archive(note: Note) {
-    if (!confirm(`Archive "${note.title || "Untitled"}"?`)) return;
+    if (!(await confirmDialog(`Archive "${note.title || "Untitled"}"?`))) return;
     try {
       await api.notes.remove(note.id);
       setNotes((list) => list.filter((n) => n.id !== note.id));

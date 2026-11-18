@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { confirmDialog } from "@/components/dialog/confirm";
 import { GlassPanel } from "@/components/glass/GlassPanel";
 import { Plus, Edit, Trash2, Clock, CheckCircle, X } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -143,7 +144,7 @@ export default function RoutinesPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm("Remove this routine?")) return;
+    if (!(await confirmDialog("Remove this routine?"))) return;
     try {
       await api.routines.remove(id);
       setRoutines((list) => list.filter((r) => r.id !== id));

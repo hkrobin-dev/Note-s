@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { confirmDialog } from "@/components/dialog/confirm";
 import { useToast } from "@/components/toast/toaster";
 import { cn } from "@/lib/utils";
 import { Plus, CheckCircle2, Circle, Trash2, Flame, Activity } from "lucide-react";
@@ -116,7 +117,7 @@ export default function HabitsPage() {
   }
 
   async function remove(h: Habit) {
-    if (!confirm(`Delete "${h.title}"? Its check-in history will be removed too.`)) return;
+    if (!(await confirmDialog(`Delete "${h.title}"? Its check-in history will be removed too.`))) return;
     try {
       await api.habits.remove(h.id);
       setHabits((list) => list.filter((x) => x.id !== h.id));

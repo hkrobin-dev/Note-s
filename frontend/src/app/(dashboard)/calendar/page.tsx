@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { confirmDialog } from "@/components/dialog/confirm";
 import { Plus, ChevronLeft, ChevronRight, Trash2, MapPin, Clock, X, Pencil } from "lucide-react";
 import { useToast } from "@/components/toast/toaster";
 
@@ -168,7 +169,7 @@ export default function CalendarPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this event?")) return;
+    if (!(await confirmDialog("Delete this event?"))) return;
     try {
       await api.calendar.remove(id);
       await load();

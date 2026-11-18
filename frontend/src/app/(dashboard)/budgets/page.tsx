@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { confirmDialog } from "@/components/dialog/confirm";
 import { format } from "date-fns";
 import { useToast } from "@/components/toast/toaster";
 import { cn } from "@/lib/utils";
@@ -117,7 +118,7 @@ export default function BudgetsPage() {
 
   async function remove(b: Budget) {
     const label = b.category?.name ? `${b.category.name} · ${format(new Date(b.month), "MMMM yyyy")}` : format(new Date(b.month), "MMMM yyyy");
-    if (!confirm(`Delete the budget for ${label}?`)) return;
+    if (!(await confirmDialog(`Delete the budget for ${label}?`))) return;
     try {
       await api.budgets.remove(b.id);
       setBudgets((list) => list.filter((x) => x.id !== b.id));

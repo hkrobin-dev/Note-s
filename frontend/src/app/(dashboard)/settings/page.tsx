@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { toast } from "@/components/toast/toaster";
+import { confirmDialog } from "@/components/dialog/confirm";
 import { GlassPanel, SectionTitle } from "@/components/glass/GlassPanel";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { Bell, Mail, CheckCircle2, AlertCircle, Lock, Download } from "lucide-react";
@@ -24,7 +26,7 @@ export default function SettingsPage() {
   }, []);
   async function enableBrowser() {
     if (typeof window === "undefined" || !("Notification" in window)) {
-      alert("This browser does not support notifications.");
+      toast.warning("This browser does not support notifications.");
       return;
     }
     const p = await Notification.requestPermission();
@@ -57,14 +59,14 @@ export default function SettingsPage() {
   }
   async function save() {
     setSaving(true);
-    try { await api.settings.patch({ theme, notificationsEnabled: notifications, emailNotifications: emailNotif }); await load(); } catch { alert("Failed to save"); } finally { setSaving(false); }
+    try { await api.settings.patch({ theme, notificationsEnabled: notifications, emailNotifications: emailNotif }); await load(); } catch { toast.error("Failed to save"); } finally { setSaving(false); }
   }
-  function removePin() {
-    if (!confirm("Remove PIN lock? You will no longer need a PIN to open the app.")) return;
+  async function removePin() {
+    if (!(await confirmDialog("Remove PIN lock? You will no longer need a PIN to open the app."))) return;
     localStorage.removeItem("mylifeos_app_pin_hash");
     sessionStorage.removeItem("mylifeos_unlocked");
     setHasPin(false);
-    alert("PIN removed. Reload the app to set a new PIN if you want.");
+    toast.success("PIN removed", "Reload the app to set a new PIN if you want.");
   }
 
   return (

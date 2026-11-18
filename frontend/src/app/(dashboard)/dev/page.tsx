@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { toast } from "@/components/toast/toaster";
+import { confirmDialog } from "@/components/dialog/confirm";
 import {
   Code2,
   Plus,
@@ -122,7 +124,7 @@ export default function DevWorkspacePage() {
       setEditingSnippet(null);
       load();
     } catch (err: any) {
-      alert(err?.message || "Failed to save snippet");
+      toast.error(err?.message || "Failed to save snippet");
     }
   }
 
@@ -145,7 +147,7 @@ export default function DevWorkspacePage() {
       setEditingBookmark(null);
       load();
     } catch (err: any) {
-      alert(err?.message || "Failed to save bookmark");
+      toast.error(err?.message || "Failed to save bookmark");
     }
   }
 
@@ -179,18 +181,18 @@ export default function DevWorkspacePage() {
       else await api.bookmarks.update(id, { favorite: !favorite });
       load();
     } catch (err: any) {
-      alert(err?.message || "Failed to update");
+      toast.error(err?.message || "Failed to update");
     }
   }
 
   async function remove(kind: "snippet" | "bookmark", id: string) {
-    if (!confirm(`Delete this ${kind}?`)) return;
+    if (!(await confirmDialog(`Delete this ${kind}?`))) return;
     try {
       if (kind === "snippet") await api.snippets.remove(id);
       else await api.bookmarks.remove(id);
       load();
     } catch (err: any) {
-      alert(err?.message || "Failed to delete");
+      toast.error(err?.message || "Failed to delete");
     }
   }
 
@@ -200,7 +202,7 @@ export default function DevWorkspacePage() {
       setCopied(snippet.id);
       setTimeout(() => setCopied((c) => (c === snippet.id ? null : c)), 1500);
     } catch {
-      alert("Clipboard unavailable");
+      toast.error("Clipboard unavailable");
     }
   }
 

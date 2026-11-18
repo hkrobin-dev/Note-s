@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { API_URL, api } from "@/lib/api";
+import { confirmDialog } from "@/components/dialog/confirm";
 import {
   Upload,
   File as FileIcon,
@@ -111,7 +112,7 @@ export default function FilesPage() {
   }
 
   async function remove(f: StoredFile) {
-    if (!confirm(`Delete "${f.filename}"?`)) return;
+    if (!(await confirmDialog(`Delete "${f.filename}"?`))) return;
     try {
       await api.files.remove(f.id);
       setFiles((list) => list.filter((x) => x.id !== f.id));
