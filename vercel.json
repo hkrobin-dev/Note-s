@@ -1,0 +1,41 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "frontend": {
+      "root": "frontend",
+      "framework": "nextjs",
+      "buildCommand": "npm run build",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "backend",
+          "format": "url",
+          "env": "BACKEND_URL"
+        }
+      ]
+    },
+    "backend": {
+      "root": "backend",
+      "framework": "express",
+      "entrypoint": "dist/index.js",
+      "buildCommand": "npm run db:generate && npm run build",
+      "functions": {
+        "dist/index.js": {
+          "maxDuration": 60
+        }
+      }
+    }
+  },
+  "rewrites": [
+    { "source": "/health", "destination": { "service": "backend" } },
+    { "source": "/auth/:path*", "destination": { "service": "backend" } },
+    { "source": "/api/(.*)", "destination": { "service": "backend" } },
+    { "source": "/(.*)", "destination": { "service": "frontend" } }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/tick",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}

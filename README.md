@@ -55,11 +55,25 @@ cp .env.example .env   # set NEXT_PUBLIC_API_URL
 npm run dev            # http://localhost:3100
 ```
 
-## Production deployment (separate)
+## Production deployment (Vercel Services + Neon)
 
-1. **DB**: Provision a managed PostgreSQL (Neon, Supabase, Railway). Set `DATABASE_URL`.
-2. **Backend**: Deploy `backend/`. Set `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL`, `NODE_ENV=production`. Run `npm run build` then `npm start`.
-3. **Frontend**: Deploy `frontend/`. Set `NEXT_PUBLIC_API_URL` to your backend URL. Run `npm run build` then `npm start`.
+The root `vercel.json` defines two services in **one Vercel project with one
+domain**:
+
+| Service | Root | Public paths |
+| --- | --- | --- |
+| `frontend` | `frontend/` | `/` and all UI routes |
+| `backend` | `backend/` | `/api/*`, `/health`, `/auth/*` |
+
+1. Provision Neon PostgreSQL and set `DATABASE_URL` (shared by both services).
+2. Import the repository into Vercel with **no Root Directory override**.
+3. Set the shared environment variables listed in `docs/DEPLOYMENT.md`. Do not
+   set `NEXT_PUBLIC_API_URL` or `BACKEND_URL` in production.
+4. Deploy. The frontend service declares a binding to the backend service, so
+   server-side code receives `BACKEND_URL` at runtime; the browser uses
+   same-origin `/api/*` requests that Vercel routes to the backend service.
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full guide.
 
 ## Features
 

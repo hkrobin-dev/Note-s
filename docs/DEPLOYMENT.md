@@ -1,38 +1,44 @@
-# My Life OS — Vercel + Neon deployment
+# My Life OS — Vercel Services + Neon deployment
 
-The frontend and backend deploy as **one Vercel project with one URL**.
+The frontend and backend deploy as **two services in one Vercel project**, with
+one shared domain and one shared set of environment variables.
 
 ```
 Browser
   └─ https://<app>.vercel.app
-       ├─ /                 Next.js App Router (UI)
-       └─ /api/*            Next.js Pages Router catch-all → Express app
-                                   └─ Neon PostgreSQL (Prisma + pgvector)
+       ├─ / , /login , /<page>   → frontend service (Next.js, root: frontend/)
+       └─ /api/* , /health , /auth/*
+                                 → backend service (Express, root: backend/)
+                                      └─ Neon PostgreSQL (Prisma + pgvector)
 ```
 
-- Vercel **Root Directory:** `frontend`
-- `prebuild` generates the Prisma client and copies `backend/src` into
-  `frontend/.backend-runtime/` so the Express API is bundled into the project.
-- `frontend/vercel.json` defines `/health` + `/auth` rewrites and the cron job.
-- Uploaded file bytes are stored in the `StoredFile.data` `BYTEA` column in
-  Neon. Vercel's filesystem is read-only and ephemeral, so local disk storage
-  is not used in production. Keep `MAX_FILE_SIZE_MB=4` (Vercel has a 4.5 MB
-  request-body limit).
+All routing lives in the repository-root `vercel.json`:
+
+- `services.frontend` — Next.js app, public via the catch-all `/(.*)` rewrite.
+- `services.backend` — Express API, public via `/api/(.*)`, `/health` and
+  `/auth/:path*` rewrites. Its entrypoint is `dist/index.js`, built with
+  `npm run db:generate && npm run build`.
+- `services.frontend.bindings` — injects `BACKEND_URL` (internal URL of the
+  backend service) into frontend **functions at runtime only**. Do not set this
+  variable yourself; it is deployment-aware. Browser code still uses
+  same-origin `/api/*` URLs, which Vercel routes to the backend service.
+- `crons` — daily `/api/cron/tick` job, routed to the backend service.
+
+A `frontend/src/pages/api/[...path].ts` bridge remains for local
+production-shaped builds (`cd frontend && npm run build && npm start`); on
+Vercel the top-level rewrite sends `/api/*` straight to the backend service.
 
 ## 1. Create the Neon database
 
 1. Create a Neon project (Postgres 16).
-2. In the Neon SQL editor, enable pgvector (the baseline migration also does
-   this, but enabling it explicitly is harmless):
+2. Enable pgvector (the baseline migration also does this):
    ```sql
    CREATE EXTENSION IF NOT EXISTS vector;
    ```
-3. Copy the **pooled** connection string (it contains `-pooler` and
-   `sslmode=require`). Use it as `DATABASE_URL` everywhere.
+3. Copy the **pooled** connection string (contains `-pooler` and
+   `sslmode=require`). Use it as `DATABASE_URL`.
 
 ## 2. Apply migrations
-
-From a local checkout with `DATABASE_URL` set (e.g. in `backend/.env`):
 
 ```bash
 cd backend
@@ -42,14 +48,12 @@ npx prisma migrate deploy
 Migration order: `20261101000000_init` (baseline), the two RAG/pgvector
 migrations, then `20261120000000_add_stored_file_data`.
 
-> If the database was previously created with `prisma db push` rather than
-> migrations, baseline it first so Prisma does not try to recreate tables:
+> If the database was previously created with `prisma db push`, baseline it:
 > ```bash
 > npx prisma migrate resolve --applied 20261101000000_init
 > ```
-> Then resolve the remaining applied migrations individually if needed.
 
-Create the demo user/categories/tags (optional but convenient):
+Seed the demo user/categories/tags (optional):
 
 ```bash
 cd backend && npx prisma db seed
@@ -57,9 +61,12 @@ cd backend && npx prisma db seed
 
 ## 3. Deploy to Vercel
 
-1. Import the repository. Set **Root Directory** to `frontend`.
-2. Framework: **Next.js**. Build command: `npm run build` (from `vercel.json`).
-3. Add these **Environment Variables** (all environments):
+1. Import the repository. **Do not set a Root Directory** — the root
+   `vercel.json` declares the services and their roots.
+2. Framework detection is per service (`nextjs` / `express`); build commands are
+   in `vercel.json`.
+3. Add these **Environment Variables** (shared by both services, all
+   environments):
 
 | Variable | Value |
 | --- | --- |
@@ -76,10 +83,10 @@ cd backend && npx prisma db seed
 | `NVIDIA_BASE_URL` | `https://integrate.api.nvidia.com/v1` |
 
 Do **not** set `NEXT_PUBLIC_API_URL` in production — the client uses
-same-origin `/api/*` requests.
+same-origin `/api/*` requests. Do **not** set `BACKEND_URL` — Vercel injects it
+from the binding.
 
-4. Deploy. Vercel will run `prebuild` → `prisma generate` → `copy:backend` →
-   `next build`.
+4. Deploy. Vercel builds the two services independently.
 
 ## 4. Verify
 
@@ -88,7 +95,7 @@ curl https://<your-app>.vercel.app/api/health
 # {"status":"ok","service":"my-life-os-backend"}
 
 curl https://<your-app>.vercel.app/health
-# same response (rewrite)
+# same response (public rewrite to the backend service)
 
 curl https://<your-app>.vercel.app/api/tasks
 # 401 with AUTH_ENFORCE=true — log in first via /api/auth/login
@@ -100,24 +107,24 @@ in production.
 
 ## 5. Scheduled reminders
 
-`frontend/vercel.json` registers a daily cron at `/api/cron/tick`. Vercel sends
-`Authorization: Bearer $CRON_SECRET`; the endpoint rejects requests without a
-matching secret. Hobby projects are limited to one cron run per day — upgrade
-to Pro for more frequent ticks. For minute-level reminders on Hobby, keep the
-standalone scheduler running on a VPS:
+The root `vercel.json` registers a daily cron at `/api/cron/tick`, routed to the
+backend service. Vercel sends `Authorization: Bearer $CRON_SECRET`; the endpoint
+rejects requests without a matching secret. Hobby projects are limited to one
+cron run per day — upgrade to Pro for more frequent ticks.
+
+## 6. Local development
+
+Run all services together with bindings injected:
 
 ```bash
-cd backend && npm run scheduler:start
+vercel dev          # or: vercel dev --local
 ```
 
-## 6. Local development (split mode)
-
-The UI and API still run as two servers locally:
+Two-server mode still works too:
 
 ```bash
 # terminal 1
 cd frontend && npm run dev     # http://localhost:3100
-
 # terminal 2
 cd backend && npm run dev      # http://localhost:4100
 ```
@@ -126,19 +133,13 @@ cd backend && npm run dev      # http://localhost:4100
 UI calls the standalone API. `next.config.ts` also loads `backend/.env`, which
 lets you test the `/api/*` bridge locally.
 
-To run the production-shaped single-server build locally:
-
-```bash
-cd frontend && npm run build && npm start
-# http://localhost:3100 serves UI + /api/*
-```
-
 ## 7. Notes / limitations
 
 - `AUTH_ENFORCE=false` (demo mode) must never be used on a public deployment.
 - AI features that use Ollama cannot run on Vercel; use `AI_PROVIDER=nvidia`.
-- Files larger than 4 MB will be rejected; use a dedicated object store if you
-  need larger uploads.
-- The generated Prisma client uses extensionless imports so Next.js can bundle
-  it. Do not hand-edit `backend/src/generated/prisma`.
+- Uploaded file bytes are stored in the `StoredFile.data` `BYTEA` column in
+  Neon because the serverless filesystem is read-only/ephemeral. Keep
+  `MAX_FILE_SIZE_MB=4` (Vercel has a 4.5 MB request-body limit).
+- The generated Prisma client uses extensionless imports so it can be bundled
+  by Next.js. Do not hand-edit `backend/src/generated/prisma`.
 - `frontend/.backend-runtime/` is a build artifact and is gitignored.

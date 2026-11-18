@@ -1,10 +1,16 @@
-// In local development the Express API runs separately on port 4100. In the
-// single-project Vercel deployment the API is mounted at the same origin via
-// the Pages Router bridge at /api/*, so use relative URLs there.
+// The browser always calls the API same-origin at /api/* — the root vercel.json
+// routes that prefix to the backend service. Server-side code can additionally
+// use the BACKEND_URL service binding declared on the frontend service.
+// Bindings are injected at runtime in functions only, never into the browser.
+const isServer = typeof window === "undefined";
+const boundBackendUrl = isServer
+  ? (process.env.BACKEND_URL ?? "").replace(/\/+$/, "")
+  : "";
 const API_URL =
-  process.env.NODE_ENV === "production"
+  boundBackendUrl ||
+  (process.env.NODE_ENV === "production"
     ? ""
-    : process.env.NEXT_PUBLIC_API_URL || "http://localhost:4100";
+    : process.env.NEXT_PUBLIC_API_URL || "http://localhost:4100");
 
 async function request(path: string, opts: RequestInit = {}) {
   const headers: Record<string, string> = { "Content-Type": "application/json", ...(opts.headers as Record<string, string>) };
