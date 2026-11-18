@@ -16,8 +16,10 @@ All routing lives in the repository-root `vercel.json`:
 
 - `services.frontend` — Next.js app, public via the catch-all `/(.*)` rewrite.
 - `services.backend` — Express API, public via `/api/(.*)`, `/health` and
-  `/auth/:path*` rewrites. Its entrypoint is `dist/index.js`, built with
-  `npm run db:generate && npm run build`.
+  `/auth/:path*` rewrites. Its entrypoint is the committed source file
+  `src/index.ts` (Vercel validates entrypoints before the build, so a generated
+  `dist/index.js` cannot be used); the build command only runs
+  `npm run db:generate`, and Vercel compiles the TypeScript entrypoint.
 - `services.frontend.bindings` — injects `BACKEND_URL` (internal URL of the
   backend service) into frontend **functions at runtime only**. Do not set this
   variable yourself; it is deployment-aware. Browser code still uses

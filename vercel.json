@@ -17,10 +17,10 @@
     "backend": {
       "root": "backend",
       "framework": "express",
-      "entrypoint": "dist/index.js",
-      "buildCommand": "npm run db:generate && npm run build",
+      "entrypoint": "src/index.ts",
+      "buildCommand": "npm run db:generate",
       "functions": {
-        "dist/index.js": {
+        "src/index.ts": {
           "maxDuration": 60
         }
       }
